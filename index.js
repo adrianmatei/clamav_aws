@@ -9,10 +9,13 @@ const s3 = new AWS.S3();
 
 exports.handler = (event, context) => {
     var timestamp = new Date().getTime().toString();
-
     var bucket = event.Records[0].s3.bucket.name;
     var key = event.Records[0].s3.object.key;
     var pathToFile = path.basename(key)
+
+    // perform file scan
+    let virusScanStatus = scanLocalFile(event, pathToFile);
+    console.log("Scan result: " + virusScanStatus);
 
 
     var params = {
@@ -22,7 +25,7 @@ exports.handler = (event, context) => {
             TagSet: [
                 {
                     Key: "av-status",
-                    Value: "INFECTED"
+                    Value: virusScanStatus
                 },
                 {
                     Key: "av-timestamp",
@@ -32,19 +35,11 @@ exports.handler = (event, context) => {
         }
     };
 
-    // perform file scan
-    let virusScanStatus = scanLocalFile(event, pathToFile);
+    s3.putObjectTagging(params, function(err, data) {
+        if (err) console.log(err, err.stack); // an error occurred
+        else     console.log(data);           // successful response
+    });
 
-    console.log("Scan result: " + virusScanStatus);
-
-//     s3.putObjectTagging(params, function(err, data) {
-//         if (err) console.log(err, err.stack); // an error occurred
-//         else     console.log(data);           // successful response
-//     });
-
-
-    console.log("------ logging -------");
-    console.log("date: " + timestamp);
     return context.logStreamName
 };
 
@@ -60,7 +55,7 @@ async function scanLocalFile(event, pathToFile) {
 
     utils.generateSystemMessage(`Scan status: ${virusScanStatus}`);
 
-    return 'SAFE';
+    return virusScanStatus;
 }
 
 function downloadFileFromS3(s3ObjectKey, s3ObjectBucket) {
