@@ -11,9 +11,6 @@ async function downloadAVDefinitions() {
     const downloadPromises = constants.CLAMAV_DEFINITIONS_FILES.map((filenameToDownload) => {
         return new Promise((resolve, reject) => {
             let destinationFile = path.join('/tmp/', filenameToDownload);
-
-            console.log('Downloading ' + filenameToDownload + 'from S3 to' + destinationFile);
-
             let localFileWriteStream = fs.createWriteStream(destinationFile);
 
             let options = {
@@ -22,7 +19,6 @@ async function downloadAVDefinitions() {
             };
 
             let s3ReadStream = S3.getObject(options).createReadStream().on('end', function () {
-                console.log('Finished download ' + filenameToDownload);
                 resolve();
             }).on('error', function (err) {
                 console.log('Error downloading definition file ' + filenameToDownload);
@@ -41,9 +37,6 @@ async function downloadAVDefinitions() {
 function scanLocalFile(pathToFile) {
     try {
         let result = execSync(`${constants.PATH_TO_CLAMAV} -v -a --stdout -d /tmp/ '/tmp/download/${pathToFile}'`);
-
-        utils.generateSystemMessage('SUCCESSFUL SCAN, FILE CLEAN');
-
         return constants.STATUS_CLEAN_FILE;
     } catch(err) {
         // Error status 1 means that the file is infected.

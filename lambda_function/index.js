@@ -8,52 +8,39 @@ const AWS = require('aws-sdk');
 const s3 = new AWS.S3();
 
 exports.handler = (event, context) => {
-    var timestamp = new Date().getTime().toString();
-    var bucket = event.Records[0].s3.bucket.name;
-    var key = event.Records[0].s3.object.key;
-    var pathToFile = path.basename(key)
+    let s3ObjectKey = utils.extractKeyFromS3Event(event);
+    let pathToFile = path.basename(s3ObjectKey)
 
     // perform file scan
-    let virusScanStatus = scanLocalFile(event, pathToFile);
-    console.log("Scan result: " + virusScanStatus);
+    scanLocalFile(event, pathToFile);
 
-
-    var params = {
-        Bucket: bucket,
-        Key: key,
-        Tagging: {
-            TagSet: [
-                {
-                    Key: "av-status",
-                    Value: virusScanStatus
-                },
-                {
-                    Key: "av-timestamp",
-                    Value: timestamp
-                }
-            ]
-        }
-    };
-
-    s3.putObjectTagging(params, function(err, data) {
-        if (err) console.log(err, err.stack); // an error occurred
-        else     console.log(data);           // successful response
-    });
-
-    return context.logStreamName
+    return context.logStreamName;
 };
 
 async function scanLocalFile(event, pathToFile) {
     let s3ObjectKey = utils.extractKeyFromS3Event(event);
     let s3ObjectBucket = utils.extractBucketFromS3Event(event);
+    var virusScanStatus = constants.STATUS_SKIPPED_FILE;
 
     await clamav.downloadAVDefinitions(constants.CLAMAV_BUCKET_NAME, constants.PATH_TO_AV_DEFINITIONS);
-
     await downloadFileFromS3(s3ObjectKey, s3ObjectBucket);
 
-    let virusScanStatus = clamav.scanLocalFile(path.basename(s3ObjectKey));
+    if(!await utils.isS3FileTooBig(s3ObjectKey, s3ObjectBucket)) {
+        virusScanStatus = clamav.scanLocalFile(path.basename(s3ObjectKey));
+        utils.generateSystemMessage(`Scan status: ${virusScanStatus}`);
+    }
 
-    utils.generateSystemMessage(`Scan status: ${virusScanStatus}`);
+    var taggingParams = {
+        Bucket: s3ObjectBucket,
+        Key: s3ObjectKey,
+        Tagging: utils.generateTagSet(virusScanStatus)
+    };
+
+    try {
+        await s3.putObjectTagging(taggingParams).promise();
+    } catch(err) {
+        console.log("Tagging error" + err);
+    }
 
     return virusScanStatus;
 }
@@ -64,10 +51,7 @@ function downloadFileFromS3(s3ObjectKey, s3ObjectBucket) {
         fs.mkdirSync(downloadDir);
     }
     let localPath = `${downloadDir}/${path.basename(s3ObjectKey)}`;
-
     let writeStream = fs.createWriteStream(localPath);
-
-    utils.generateSystemMessage(`Downloading file s3://${s3ObjectBucket}/${s3ObjectKey}`);
 
     let options = {
         Bucket: s3ObjectBucket,
@@ -76,10 +60,9 @@ function downloadFileFromS3(s3ObjectKey, s3ObjectBucket) {
 
     return new Promise((resolve, reject) => {
         s3.getObject(options).createReadStream().on('end', function () {
-            utils.generateSystemMessage(`Finished downloading new object ${s3ObjectKey}`);
             resolve();
         }).on('error', function (err) {
-            console.log(err);
+            console.log("Error when downloading file from S3: " + err);
             reject();
         }).pipe(writeStream);
     });
