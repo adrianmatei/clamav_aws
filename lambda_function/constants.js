@@ -9,6 +9,11 @@ const VIRUS_SCAN_STATUS_KEY = process.env.VIRUS_SCAN_STATUS_KEY || 'av-status';
 const VIRUS_SCAN_TIMESTAMP_KEY = process.env.VIRUS_SCAN_TIMESTAMP_KEY || 'av-timestamp';
 const MAX_FILE_SIZE = process.env.MAX_FILE_SIZE || '314572800';
 const STATUS_SKIPPED_FILE = process.env.STATUS_SKIPPED_FILE || 'SKIPPED';
+const INFECTED_DIR_NAME = "infected";
+const DUMMY_PDF_FILE_NAME = "ReplacementVirus.pdf";
+const ASSET_PATH = "./assets/";
+const FILE_TYPE = "FILE_TYPE";
+const DUMMY_PDF_REPLACEMENT = "REPLACEMENT_VIRUS_PDF";
 
 module.exports = {
     CLAMAV_BUCKET_NAME          : CLAMAV_BUCKET_NAME,
@@ -21,5 +26,11 @@ module.exports = {
     VIRUS_STATUS_STATUS_KEY     : VIRUS_SCAN_STATUS_KEY,
     VIRUS_SCAN_TIMESTAMP_KEY    : VIRUS_SCAN_TIMESTAMP_KEY,
     STATUS_SKIPPED_FILE         : STATUS_SKIPPED_FILE,
-    MAX_FILE_SIZE               : MAX_FILE_SIZE
+    MAX_FILE_SIZE               : MAX_FILE_SIZE,
+    INFECTED_DIR_NAME           : INFECTED_DIR_NAME,
+    DUMMY_PDF_FILE_NAME         : DUMMY_PDF_FILE_NAME,
+    ASSET_PATH                  : ASSET_PATH,
+    FILE_TYPE                   : FILE_TYPE,
+    DUMMY_PDF_REPLACEMENT       : DUMMY_PDF_REPLACEMENT
+    
 };
