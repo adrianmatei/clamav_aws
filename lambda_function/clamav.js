@@ -51,7 +51,60 @@ function scanLocalFile(pathToFile) {
     }
 }
 
+const putObjectToS3 = async (bucketName, objectKey, body, options = {}) => {
+    let putOptions = {
+        Bucket: bucketName,
+        Key: objectKey,
+        Body: body,
+        ...(Object.keys(options).length === 0 && options.constructor === Object
+            ? {}
+            : options)
+    };
+
+    return S3.putObject(putOptions).promise();
+};
+
+const removeObjectFromS3 = async (
+    sourceBucket,
+    sourceKey,
+    destinationBucket,
+    destinationKey
+) => {
+    // Remove file from source folder
+    const deleteObjectParams = {
+        Bucket: sourceBucket,
+        Key: sourceKey
+    };
+
+    const deleteResult = await S3.deleteObject(deleteObjectParams).promise();
+
+    return `${deleteResult}`;
+};
+
+const taggingObjectInS3 = async (bucketName, objectKey, tag) => {
+    var taggingParams = {
+        Bucket: bucketName,
+        Key: objectKey,
+        Tagging: tag
+    };
+
+    return S3.putObjectTagging(taggingParams).promise();
+};
+
+const getObjectTaggingFromS3 = async (bucketName, objectKey) => {
+    const params = {
+        Bucket: bucketName,
+        Key: objectKey
+    };
+    return S3.getObjectTagging(params).promise();
+};
+
+
 module.exports = {
     downloadAVDefinitions: downloadAVDefinitions,
-    scanLocalFile: scanLocalFile
+    scanLocalFile         : scanLocalFile,
+    putObjectToS3         : putObjectToS3,
+    removeObjectFromS3    : removeObjectFromS3,
+    taggingObjectInS3     : taggingObjectInS3,
+    getObjectTaggingFromS3: getObjectTaggingFromS3
 };
