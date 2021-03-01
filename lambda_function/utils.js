@@ -54,6 +54,18 @@ async function isS3FileTooBig(s3ObjectKey, s3ObjectBucket) {
     return (fileSize > constants.MAX_FILE_SIZE);
 }
 
+const addDummyTagSet = (tagSet = { TagSet: [] }) => {
+    return {
+        TagSet: [
+            ...tagSet.TagSet,
+            {
+                Key: constants.FILE_TYPE,
+                Value: constants.DUMMY_PDF_REPLACEMENT
+            }
+        ]
+    };
+};
+
 function generateSystemMessage(systemMessage) {
     let finalMessage = `--- ${systemMessage} ---`;
     console.log(finalMessage);
@@ -65,5 +77,6 @@ module.exports = {
     extractBucketFromS3Event: extractBucketFromS3Event,
     generateSystemMessage   : generateSystemMessage,
     generateTagSet          : generateTagSet,
-    isS3FileTooBig          : isS3FileTooBig
+    isS3FileTooBig          : isS3FileTooBig,
+    addDummyTagSet          : addDummyTagSet
 };
