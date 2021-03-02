@@ -7,6 +7,7 @@ const execSync = require('child_process').execSync;
 
 const S3 = new AWS.S3();
 
+// Download ClamAV virus database
 async function downloadAVDefinitions() {
     const downloadPromises = constants.CLAMAV_DEFINITIONS_FILES.map((filenameToDownload) => {
         return new Promise((resolve, reject) => {
@@ -34,6 +35,7 @@ async function downloadAVDefinitions() {
     return await Promise.all(downloadPromises);
 }
 
+// Scan uploaded file
 function scanLocalFile(pathToFile) {
     try {
         let result = execSync(`${constants.PATH_TO_CLAMAV} -v -a --stdout -d /tmp/ '/tmp/download/${pathToFile}'`);
@@ -51,7 +53,8 @@ function scanLocalFile(pathToFile) {
     }
 }
 
-const putObjectToS3 = async (bucketName, objectKey, body, options = {}) => {
+// Save object in S3
+async function putObjectToS3(bucketName, objectKey, body, options = {}) {
     let putOptions = {
         Bucket: bucketName,
         Key: objectKey,
@@ -62,26 +65,21 @@ const putObjectToS3 = async (bucketName, objectKey, body, options = {}) => {
     };
 
     return S3.putObject(putOptions).promise();
-};
+}
 
-const removeObjectFromS3 = async (
-    sourceBucket,
-    sourceKey,
-    destinationBucket,
-    destinationKey
-) => {
-    // Remove file from source folder
+// Remove file from source folder
+async function removeObjectFromS3(sourceBucket, sourceKey) {
     const deleteObjectParams = {
         Bucket: sourceBucket,
         Key: sourceKey
     };
-
     const deleteResult = await S3.deleteObject(deleteObjectParams).promise();
 
     return `${deleteResult}`;
-};
+}
 
-const taggingObjectInS3 = async (bucketName, objectKey, tag) => {
+// Tag S3 object
+async function taggingObjectInS3(bucketName, objectKey, tag) {
     var taggingParams = {
         Bucket: bucketName,
         Key: objectKey,
@@ -89,16 +87,16 @@ const taggingObjectInS3 = async (bucketName, objectKey, tag) => {
     };
 
     return S3.putObjectTagging(taggingParams).promise();
-};
+}
 
-const getObjectTaggingFromS3 = async (bucketName, objectKey) => {
+// Get S3 object tags
+async function getObjectTaggingFromS3(bucketName, objectKey) {
     const params = {
         Bucket: bucketName,
         Key: objectKey
     };
     return S3.getObjectTagging(params).promise();
-};
-
+}
 
 module.exports = {
     downloadAVDefinitions: downloadAVDefinitions,

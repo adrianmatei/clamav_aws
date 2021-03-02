@@ -24,6 +24,7 @@ function extractBucketFromS3Event(s3Event) {
     return bucketName;
 }
 
+// Generate S3 object tags
 function generateTagSet(virusScanStatus) {
     return {
         TagSet: [
@@ -48,23 +49,33 @@ async function sizeOf(key, bucket) {
 // Check if S3 object is larger then the MAX_FILE_SIZE set.
 async function isS3FileTooBig(s3ObjectKey, s3ObjectBucket) {
     let fileSize = await sizeOf(s3ObjectKey, s3ObjectBucket);
-    console.log("File size: " + fileSize);
-    console.log("Max size: " + constants.MAX_FILE_SIZE);
 
     return (fileSize > constants.MAX_FILE_SIZE);
 }
 
-const addDummyTagSet = (tagSet = { TagSet: [] }) => {
+// Add tags for the dummy file
+function addDummyTagSet (tagSet = { TagSet: [] }) {
     return {
         TagSet: [
             ...tagSet.TagSet,
             {
                 Key: constants.FILE_TYPE,
-                Value: constants.DUMMY_PDF_REPLACEMENT
+                Value: constants.PDF_REPLACEMENT
             }
         ]
     };
-};
+}
+
+// Check if the file is an image
+function isFileImage(fileType) {
+    const acceptedImageTypes = ['image/bmp', 'image/gif', 'image/jpeg', 'image/png', 'image/vnd.microsoft.icon', 'image/tiff', 'image/svg+xml', 'image/webp'];
+
+    if(acceptedImageTypes.includes(fileType)) {
+        return true;
+    } else {
+        return false;
+    }
+}
 
 function generateSystemMessage(systemMessage) {
     let finalMessage = `--- ${systemMessage} ---`;
@@ -78,5 +89,6 @@ module.exports = {
     generateSystemMessage   : generateSystemMessage,
     generateTagSet          : generateTagSet,
     isS3FileTooBig          : isS3FileTooBig,
-    addDummyTagSet          : addDummyTagSet
+    addDummyTagSet          : addDummyTagSet,
+    isFileImage             : isFileImage
 };
