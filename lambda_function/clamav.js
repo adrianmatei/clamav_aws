@@ -20,6 +20,7 @@ async function downloadAVDefinitions() {
             };
 
             let s3ReadStream = S3.getObject(options).createReadStream().on('end', function () {
+                console.log('Finished download ' + filenameToDownload);
                 resolve();
             }).on('error', function (err) {
                 console.log('Error downloading definition file ' + filenameToDownload);
@@ -95,6 +96,8 @@ async function getObjectTaggingFromS3(bucketName, objectKey) {
         Bucket: bucketName,
         Key: objectKey
     };
+    console.log("--- Inside getObjectTaggingFromS3: " + S3.getObjectTagging(params));
+
     return S3.getObjectTagging(params).promise();
 }
 
