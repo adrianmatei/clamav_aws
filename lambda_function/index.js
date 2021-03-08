@@ -3,19 +3,13 @@ const clamav = require('./clamav');
 const utils = require('./utils');
 const path = require('path');
 const fs = require('fs');
-const notifications = require('./notifications');
 
 const AWS = require('aws-sdk');
 const s3 = new AWS.S3();
 
 exports.handler = (event, context) => {
-    console.log("--- Before code start ---");
-
     let s3ObjectKey = utils.extractKeyFromS3Event(event);
     let pathToFile = path.basename(s3ObjectKey)
-
-    console.log("--- s3ObjectKey: " + s3ObjectKey);
-
 
     // perform file scan
     scanLocalFile(event, pathToFile);
@@ -30,16 +24,13 @@ async function scanLocalFile(event, pathToFile) {
     let objectHead = await s3.headObject({ Bucket:s3ObjectBucket, Key:s3ObjectKey }).promise();
     let objectIsFileImage = utils.isFileImage(objectHead["ContentType"]);
 
-    console.log("--- Inside scanLocalFile ---");
+    console.log("objectIsFileImage: " + objectIsFileImage);
 
     await clamav.downloadAVDefinitions(constants.CLAMAV_BUCKET_NAME, constants.PATH_TO_AV_DEFINITIONS);
     await downloadFileFromS3(s3ObjectKey, s3ObjectBucket);
 
-    console.log("--- after downloadFileFromS3 before getObjectTaggingFromS3");
-
     // Check if the file is a dummy file. If yes, skip scanning
     const tagData = await clamav.getObjectTaggingFromS3(s3ObjectBucket, s3ObjectKey);
-
 
     if (tagData && tagData.TagSet && tagData.TagSet.length) {
         const fileTypeTag = tagData.TagSet.find(
@@ -47,15 +38,19 @@ async function scanLocalFile(event, pathToFile) {
         );
 
         if (fileTypeTag.Value === constants.PDF_REPLACEMENT || fileTypeTag.Value === constants.GIF_REPLACEMENT) {
-            utils.generateSystemMessage(`--- Scan status: ${virusScanStatus}`);
+            console.log("--- Skipping file --");
             return constants.STATUS_SKIPPED_FILE;
         }
     }
 
+    console.log("--- Check file size ---");
+
     if(!await utils.isS3FileTooBig(s3ObjectKey, s3ObjectBucket)) {
         virusScanStatus = clamav.scanLocalFile(path.basename(s3ObjectKey));
-        utils.generateSystemMessage(`--- Scan status: ${virusScanStatus}`);
+        utils.generateSystemMessage(`Scan status: ${virusScanStatus}`);
     }
+
+    console.log("--- After scan ---");
 
     try {
         const tagSetForScannedFile = utils.generateTagSet(virusScanStatus);
@@ -70,7 +65,7 @@ async function scanLocalFile(event, pathToFile) {
 
             // Replace the source file with dummy PDF/GIF
             let putResult = await replaceFile(s3ObjectBucket, s3ObjectKey, objectIsFileImage);
-            utils.generateSystemMessage(`Put the dummy file successful with result ${JSON.stringify(putResult)}`);
+            utils.generateSystemMessage(`Put the dummy file successful with result ${putResult}`);
 
             // Tag the dummy file with the same detail as original file
             let uploadResult = await clamav.taggingObjectInS3(
@@ -80,9 +75,6 @@ async function scanLocalFile(event, pathToFile) {
             );
 
             utils.generateSystemMessage(`Tagging the dummy file successful with result ${uploadResult}`);
-
-            // Send request to cypherlearning
-            notifications.doPostRequest(s3ObjectBucket, s3ObjectKey);
         }
 
     } catch(err) {
@@ -107,7 +99,6 @@ function downloadFileFromS3(s3ObjectKey, s3ObjectBucket) {
 
     return new Promise((resolve, reject) => {
         s3.getObject(options).createReadStream().on('end', function () {
-            console.log("Finished downloadin file from S3");
             resolve();
         }).on('error', function (err) {
             console.log("Error when downloading file from S3: " + err);

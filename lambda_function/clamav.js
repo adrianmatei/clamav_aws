@@ -39,7 +39,13 @@ async function downloadAVDefinitions() {
 // Scan uploaded file
 function scanLocalFile(pathToFile) {
     try {
+
+        console.log("--- inside try scanLocalFile --- path: " + pathToFile);
+
         let result = execSync(`${constants.PATH_TO_CLAMAV} -v -a --stdout -d /tmp/ '/tmp/download/${pathToFile}'`);
+
+        console.log("Result: " + result);
+
         return constants.STATUS_CLEAN_FILE;
     } catch(err) {
         // Error status 1 means that the file is infected.
@@ -96,8 +102,6 @@ async function getObjectTaggingFromS3(bucketName, objectKey) {
         Bucket: bucketName,
         Key: objectKey
     };
-    console.log("--- Inside getObjectTaggingFromS3: " + S3.getObjectTagging(params));
-
     return S3.getObjectTagging(params).promise();
 }
 

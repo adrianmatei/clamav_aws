@@ -1,5 +1,6 @@
 const CLAMAV_DEFINITIONS_FILES = ['main.cvd', 'daily.cvd', 'bytecode.cvd'];
-const CLAMAV_BUCKET_NAME       = 'clam-av-files-bucket';
+// const CLAMAV_BUCKET_NAME       = 'clam-av-files-bucket';
+const CLAMAV_BUCKET_NAME       = 'cypher-clam-av-files';
 const PATH_TO_AV_DEFINITIONS   = 'virus_definitions';
 const PATH_TO_CLAMAV = './clamscan';
 const STATUS_CLEAN_FILE = process.env.STATUS_CLEAN_FILE || 'CLEAN';
