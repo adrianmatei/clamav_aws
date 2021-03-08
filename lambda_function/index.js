@@ -75,6 +75,12 @@ async function scanLocalFile(event, pathToFile) {
             );
 
             utils.generateSystemMessage(`Tagging the dummy file successful with result ${uploadResult}`);
+        } else if (virusScanStatus === constants.STATUS_CLEAN_FILE) {
+            await clamav.taggingObjectInS3(
+                s3ObjectBucket,
+                s3ObjectKey,
+                utils.generateTagSet(virusScanStatus)
+            );
         }
 
     } catch(err) {
