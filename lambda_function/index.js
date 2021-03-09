@@ -23,6 +23,7 @@ async function scanLocalFile(event, pathToFile) {
     let virusScanStatus = constants.STATUS_SKIPPED_FILE;
     let objectHead = await s3.headObject({ Bucket:s3ObjectBucket, Key:s3ObjectKey }).promise();
     let objectIsFileImage = utils.isFileImage(objectHead["ContentType"]);
+    let objectIsSVG = utils.isSVG(objectHead["ContentType"]);
 
     console.log("objectIsFileImage: " + objectIsFileImage);
 
@@ -47,6 +48,17 @@ async function scanLocalFile(event, pathToFile) {
 
     if(!await utils.isS3FileTooBig(s3ObjectKey, s3ObjectBucket)) {
         virusScanStatus = clamav.scanLocalFile(path.basename(s3ObjectKey));
+
+        // check svg files for embeded scripts
+        if(objectIsSVG && virusScanStatus === constants.STATUS_CLEAN_FILE){
+            let fullPath = '/tmp/download/' + path.basename(s3ObjectKey);
+            var svgData = fs.readFileSync(fullPath, 'utf8');
+
+            if(svgData.includes('<script')) {
+                virusScanStatus = constants.STATUS_INFECTED_FILE;
+            }
+        }
+
         utils.generateSystemMessage(`Scan status: ${virusScanStatus}`);
     }
 

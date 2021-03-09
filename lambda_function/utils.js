@@ -1,16 +1,18 @@
 const AWS = require('aws-sdk');
 const s3 = new AWS.S3();
+const fs = require('fs');
 const constants = require('./constants');
 
 //Extract the key from an S3 event
 function extractKeyFromS3Event(s3Event) {
     let key = s3Event['Records'][0]['s3']['object']['key'];
+    let decodedKey = decodeURIComponent(key);
 
     if (!key) {
         throw new Error("Unable to retrieve key information from the event");
     }
 
-    return key.replace(/\+/g,' ');
+    return decodedKey.replace(/\+/g,' ');
 }
 
 //Extract the bucket from an S3 event
@@ -77,6 +79,17 @@ function isFileImage(fileType) {
     }
 }
 
+// Check if the file is an SVG
+function isSVG(fileType) {
+    const acceptedImageTypes = ['image/svg+xml'];
+
+    if(acceptedImageTypes.includes(fileType)) {
+        return true;
+    } else {
+        return false;
+    }
+}
+
 function generateSystemMessage(systemMessage) {
     let finalMessage = `--- ${systemMessage} ---`;
     console.log(finalMessage);
@@ -90,5 +103,6 @@ module.exports = {
     generateTagSet          : generateTagSet,
     isS3FileTooBig          : isS3FileTooBig,
     addDummyTagSet          : addDummyTagSet,
-    isFileImage             : isFileImage
+    isFileImage             : isFileImage,
+    isSVG                   : isSVG
 };
