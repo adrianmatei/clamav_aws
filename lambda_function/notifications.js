@@ -1,24 +1,24 @@
 const https = require('https');
-const AWS = require('aws-sdk');
-const s3 = new AWS.S3();
 
-const doPostRequest = (bucketName, fileName) => {
-    const params = {'Bucket': bucketName, 'Key': fileName};
-    var objectURL  = '';
-    s3.getSignedUrl('putObject', params, function (err, url) {
-        objectURL = url;
-    });
+const doPostRequest = (bucketName, objectKey) => {
+    var domainName = bucketName;
 
-    console.log("--- objectURL: " + objectURL);
+    // replace some bucket names
+    if(bucketName == 's3.edu20.com'){ domainName = 'matrixlms.com'; }
+    if(bucketName == 's3.edu20.org'){ domainName = 'neolms.com'; }
+
+    domainName = 'www.' + domainName.replace('s3.','');
+
+    console.log("--- domain name: " + domainName);
 
     const data = {
-        file_url:    objectURL,
-        bucket_name: bucketName
+        file_path:    objectKey,
+        bucket_name:  bucketName
     };
 
     return new Promise((resolve, reject) => {
         const options = {
-            host: 'www.matrix-lms.com', // TODO: select host according to bucket name
+            host: domainName,
             path: '/info/virus_detected',
             method: 'POST',
             headers: {

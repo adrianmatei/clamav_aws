@@ -5,6 +5,7 @@ const clamav = require('./clamav');
 const utils = require('./utils');
 const path = require('path');
 const fs = require('fs');
+const notifications = require('./notifications');
 
 exports.handler = (event, context) => {
     let s3ObjectKey = utils.extractKeyFromS3Event(event);
@@ -93,6 +94,11 @@ async function scanLocalFile(event, pathToFile) {
         }
     } catch(err) {
         console.log("Tagging error" + err);
+    }
+
+    // Send request to cypherlearning
+    if(virusScanStatus === constants.STATUS_INFECTED_FILE) {
+        notifications.doPostRequest(s3ObjectBucket, s3ObjectKey);
     }
 
     return virusScanStatus;
