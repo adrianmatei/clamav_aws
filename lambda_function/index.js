@@ -50,8 +50,6 @@ async function scanLocalFile(event, pathToFile) {
         // check svg files for embeded scripts
         if(objectIsSVG && virusScanStatus === constants.STATUS_CLEAN_FILE){
             let fullPath = '/tmp/download/' + path.basename(s3ObjectKey);
-            var SCRIPT_REGEX = /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi;
-
             var svgData = fs.readFileSync(fullPath, 'utf8');
 
             if(svgData.includes('<script')) {
