@@ -1,11 +1,10 @@
 const AWS = require('aws-sdk');
+const s3 = new AWS.S3();
 const fs = require('fs');
 const utils = require('./utils');
 const path = require('path');
 const constants = require('./constants');
 const execSync = require('child_process').execSync;
-
-const S3 = new AWS.S3();
 
 // Download ClamAV virus database
 async function downloadAVDefinitions() {
@@ -19,12 +18,10 @@ async function downloadAVDefinitions() {
                 Key   : `${constants.PATH_TO_AV_DEFINITIONS}/${filenameToDownload}`,
             };
 
-            let s3ReadStream = S3.getObject(options).createReadStream().on('end', function () {
-                console.log('Finished download ' + filenameToDownload);
+            let s3ReadStream = s3.getObject(options).createReadStream().on('end', function () {
                 resolve();
             }).on('error', function (err) {
                 console.log('Error downloading definition file ' + filenameToDownload);
-                console.log(`${constants.PATH_TO_AV_DEFINITIONS}/${filenameToDownload}`)
                 console.log(err);
                 reject();
             });
@@ -39,18 +36,7 @@ async function downloadAVDefinitions() {
 // Scan uploaded file
 function scanLocalFile(pathToFile) {
     try {
-
-        // let fullPath = '/tmp/download/' + pathToFile;
-
-        // fs.readFile(fullPath, 'utf8', function(err, data) {
-        //     if (err) throw err;
-        //     console.log("--- file data ----");
-        //     console.log(data);
-        // });
-
-
-
-        let result = execSync(`${constants.PATH_TO_CLAMAV} -v -a --stdout -d /tmp/ '/tmp/download/${pathToFile}'`);
+        execSync(`${constants.PATH_TO_CLAMAV} -v -a --stdout -d /tmp/ '/tmp/download/${pathToFile}'`);
         return constants.STATUS_CLEAN_FILE;
     } catch(err) {
         // Error status 1 means that the file is infected.
@@ -76,7 +62,7 @@ async function putObjectToS3(bucketName, objectKey, body, options = {}) {
             : options)
     };
 
-    return S3.putObject(putOptions).promise();
+    return s3.putObject(putOptions).promise();
 }
 
 // Remove file from source folder
@@ -85,7 +71,7 @@ async function removeObjectFromS3(sourceBucket, sourceKey) {
         Bucket: sourceBucket,
         Key: sourceKey
     };
-    const deleteResult = await S3.deleteObject(deleteObjectParams).promise();
+    const deleteResult = await s3.deleteObject(deleteObjectParams).promise();
 
     return `${deleteResult}`;
 }
@@ -98,7 +84,7 @@ async function taggingObjectInS3(bucketName, objectKey, tag) {
         Tagging: tag
     };
 
-    return S3.putObjectTagging(taggingParams).promise();
+    return s3.putObjectTagging(taggingParams).promise();
 }
 
 // Get S3 object tags
@@ -108,7 +94,7 @@ async function getObjectTaggingFromS3(bucketName, objectKey) {
         Key: objectKey
     };
 
-    return S3.getObjectTagging(params).promise();
+    return s3.getObjectTagging(params).promise();
 }
 
 module.exports = {

@@ -8,8 +8,9 @@ const STATUS_INFECTED_FILE = process.env.STATUS_INFECTED_FILE || 'INFECTED';
 const STATUS_ERROR_PROCESSING_FILE = process.env.STATUS_ERROR_PROCESSING_FILE || 'ERROR';
 const VIRUS_SCAN_STATUS_KEY = process.env.VIRUS_SCAN_STATUS_KEY || 'av-status';
 const VIRUS_SCAN_TIMESTAMP_KEY = process.env.VIRUS_SCAN_TIMESTAMP_KEY || 'av-timestamp';
-const MAX_FILE_SIZE = process.env.MAX_FILE_SIZE || '314572800';
+const MAX_FILE_SIZE = process.env.MAX_FILE_SIZE || '294000000';
 const STATUS_SKIPPED_FILE = process.env.STATUS_SKIPPED_FILE || 'SKIPPED';
+const INFECTED_DIR_NAME = "infected";
 const PDF_FILE_NAME = "ReplacementVirus.pdf";
 const GIF_FILE_NAME = "ReplacementVirus.gif";
 const ASSET_PATH = "./assets/";
@@ -29,6 +30,7 @@ module.exports = {
     VIRUS_SCAN_TIMESTAMP_KEY    : VIRUS_SCAN_TIMESTAMP_KEY,
     STATUS_SKIPPED_FILE         : STATUS_SKIPPED_FILE,
     MAX_FILE_SIZE               : MAX_FILE_SIZE,
+    INFECTED_DIR_NAME           : INFECTED_DIR_NAME,
     PDF_FILE_NAME               : PDF_FILE_NAME,
     ASSET_PATH                  : ASSET_PATH,
     FILE_TYPE                   : FILE_TYPE,

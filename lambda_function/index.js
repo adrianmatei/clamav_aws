@@ -1,15 +1,14 @@
+const AWS = require('aws-sdk');
+const s3 = new AWS.S3();
 const constants = require('./constants');
 const clamav = require('./clamav');
 const utils = require('./utils');
 const path = require('path');
 const fs = require('fs');
 
-const AWS = require('aws-sdk');
-const s3 = new AWS.S3();
-
 exports.handler = (event, context) => {
     let s3ObjectKey = utils.extractKeyFromS3Event(event);
-    let pathToFile = path.basename(s3ObjectKey)
+    let pathToFile = path.basename(s3ObjectKey);
 
     // perform file scan
     scanLocalFile(event, pathToFile);
@@ -24,8 +23,6 @@ async function scanLocalFile(event, pathToFile) {
     let objectHead = await s3.headObject({ Bucket:s3ObjectBucket, Key:s3ObjectKey }).promise();
     let objectIsFileImage = utils.isFileImage(objectHead["ContentType"]);
     let objectIsSVG = utils.isSVG(objectHead["ContentType"]);
-
-    console.log("objectIsFileImage: " + objectIsFileImage);
 
     await clamav.downloadAVDefinitions(constants.CLAMAV_BUCKET_NAME, constants.PATH_TO_AV_DEFINITIONS);
     await downloadFileFromS3(s3ObjectKey, s3ObjectBucket);
@@ -44,14 +41,17 @@ async function scanLocalFile(event, pathToFile) {
         }
     }
 
-    console.log("--- Check file size ---");
-
+    // scan file if it's not too big
     if(!await utils.isS3FileTooBig(s3ObjectKey, s3ObjectBucket)) {
+
+        // run the scanner
         virusScanStatus = clamav.scanLocalFile(path.basename(s3ObjectKey));
 
         // check svg files for embeded scripts
         if(objectIsSVG && virusScanStatus === constants.STATUS_CLEAN_FILE){
             let fullPath = '/tmp/download/' + path.basename(s3ObjectKey);
+            var SCRIPT_REGEX = /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi;
+
             var svgData = fs.readFileSync(fullPath, 'utf8');
 
             if(svgData.includes('<script')) {
@@ -62,8 +62,7 @@ async function scanLocalFile(event, pathToFile) {
         utils.generateSystemMessage(`Scan status: ${virusScanStatus}`);
     }
 
-    console.log("--- After scan ---");
-
+    // replace file if infected and add tags
     try {
         const tagSetForScannedFile = utils.generateTagSet(virusScanStatus);
 
@@ -80,13 +79,11 @@ async function scanLocalFile(event, pathToFile) {
             utils.generateSystemMessage(`Put the dummy file successful with result ${putResult}`);
 
             // Tag the dummy file with the same detail as original file
-            let uploadResult = await clamav.taggingObjectInS3(
+            await clamav.taggingObjectInS3(
                 s3ObjectBucket,
                 s3ObjectKey,
                 utils.addDummyTagSet(tagSetForScannedFile)
             );
-
-            utils.generateSystemMessage(`Tagging the dummy file successful with result ${uploadResult}`);
         } else if (virusScanStatus === constants.STATUS_CLEAN_FILE) {
             await clamav.taggingObjectInS3(
                 s3ObjectBucket,
@@ -94,7 +91,6 @@ async function scanLocalFile(event, pathToFile) {
                 utils.generateTagSet(virusScanStatus)
             );
         }
-
     } catch(err) {
         console.log("Tagging error" + err);
     }
@@ -102,6 +98,7 @@ async function scanLocalFile(event, pathToFile) {
     return virusScanStatus;
 }
 
+// download the file about to be scanned from S3 and save it in /tmp/download
 function downloadFileFromS3(s3ObjectKey, s3ObjectBucket) {
     const downloadDir = `/tmp/download`;
     if (!fs.existsSync(downloadDir)){
@@ -125,13 +122,14 @@ function downloadFileFromS3(s3ObjectKey, s3ObjectBucket) {
     });
 }
 
+// replace infected file with the canned message in S3
 async function replaceFile(s3ObjectBucket, s3ObjectKey, isImage){
     let fileName = isImage ? constants.GIF_FILE_NAME : constants.PDF_FILE_NAME;
     let contentType = isImage ? 'image/gif' : "application/pdf";
 
     let putResult = await clamav.putObjectToS3(
         s3ObjectBucket,
-        s3ObjectKey, // use the original key
+        s3ObjectKey,
         fs.createReadStream(
             path.join(
                 constants.ASSET_PATH,
