@@ -6,6 +6,7 @@ const doPostRequest = (bucketName, objectKey) => {
     // replace some bucket names
     if(bucketName == 's3.edu20.com'){ domainName = 'matrixlms.com'; }
     if(bucketName == 's3.edu20.org'){ domainName = 'neolms.com'; }
+    if(bucketName == 's3.matrix-lms.com'){ domainName = 'neo-lms.com'; }
 
     domainName = 'www.' + domainName.replace('s3.','');
 
